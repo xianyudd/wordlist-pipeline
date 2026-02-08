@@ -7,7 +7,7 @@ import warnings
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, cast
 
 
 @dataclass(frozen=True)
@@ -257,11 +257,11 @@ def draw_upset(
         series,
         subset_size="sum",
         sort_by="cardinality",
-        show_counts=False,
+        show_counts=cast(Any, False),
         # Keep matrix marks neutral; bars are recolored below by intersection degree.
         facecolor="#4B5563",
-        other_dots_color="#C4CAD6",
-        shading_color="#F4F6FA",
+        other_dots_color=cast(Any, "#C4CAD6"),
+        shading_color=cast(Any, "#F4F6FA"),
         element_size=38,
         intersection_plot_elements=8,
         totals_plot_elements=3,
@@ -316,9 +316,12 @@ def draw_upset(
             patch.set_linewidth(0.6)
         # Annotate all intersections above a practical threshold to keep readability.
         y_offsets = [0.02, 0.08, 0.14, 0.05]
-        for i, (patch, val) in enumerate(zip(intersections_ax.patches, sorted_series.values)):
+        from matplotlib.patches import Rectangle
+
+        for i, (patch_raw, val) in enumerate(zip(intersections_ax.patches, sorted_series.values)):
             if val < 1000:
                 continue
+            patch = cast(Rectangle, patch_raw)
             x = patch.get_x() + patch.get_width() / 2.0
             y = patch.get_height()
             if intersections_ax.get_yscale() == "log":
@@ -361,7 +364,10 @@ def draw_upset(
         if labels:
             totals_ax.set_yticklabels([display_name(x) for x in labels])
         label_map = {label: src_colors.get(label, "#5E6A7D") for label in labels}
-        for i, patch in enumerate(totals_ax.patches):
+        from matplotlib.patches import Rectangle
+
+        for i, patch_raw in enumerate(totals_ax.patches):
+            patch = cast(Rectangle, patch_raw)
             label = labels[i] if i < len(labels) else ""
             color = label_map.get(label)
             if color is None:
@@ -374,7 +380,8 @@ def draw_upset(
         # Label every source-size bar.
         x0, x1 = totals_ax.get_xlim()
         is_reversed = x0 > x1
-        for patch in totals_ax.patches:
+        for patch_raw in totals_ax.patches:
+            patch = cast(Rectangle, patch_raw)
             val = abs(patch.get_width())
             if val <= 0:
                 continue
