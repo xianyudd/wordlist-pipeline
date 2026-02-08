@@ -17,6 +17,14 @@
 .
 ├── Makefile
 ├── pyproject.toml
+├── docs/
+│   ├── README.md                  # 数据源文档索引
+│   └── sources/
+│       ├── THUOCL.md
+│       ├── jieba.md
+│       ├── OpenCC.md
+│       ├── zhwiki_titles_ns0_gz.md
+│       └── hanyuguoxue_changdu3_top50.md
 ├── sources/
 │   └── sources.txt                # 数据源定义（type name ref/url）
 ├── scripts/
@@ -149,6 +157,12 @@ type  name  ref_or_url
 1. 在 `sources/sources.txt` 新增一行。
 2. 原始文件放到 `data/raw/<name>.txt`（或在 `extract.py` 里添加专用解析逻辑）。
 3. 重新执行 `make extract normalize filter merge qc`。
+
+## 数据源文档
+
+每个数据源的详细介绍、格式和处理规则见：
+
+- `docs/README.md`
 
 ## 关键脚本行为说明
 
