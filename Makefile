@@ -6,9 +6,14 @@ S1  := data/stage1_extracted
 S2  := data/stage2_normalized
 S3  := data/stage3_filtered
 OUT := out
+OUT_PLOTS := docs/plots
 
 # 产物文件名可覆盖
 OUT_WORDS ?= $(OUT)/3zi_words.txt
+OUT_OVERLAP ?= $(OUT)/source_overlap.png
+PLOT_MODE ?= upset
+PLOT_TYPES ?= all
+PLOT_OVERLAP_METRIC ?= jaccard
 
 # 选源（来自 sources/sources.txt 的 name 列），可覆盖
 MERGE_INCLUDE ?=
@@ -24,7 +29,7 @@ TMP_DIR ?= .tmp
 INCLUDE_FLAG := $(if $(MERGE_INCLUDE),--include $(MERGE_INCLUDE),)
 EXCLUDE_FLAG := $(if $(MERGE_EXCLUDE),--exclude $(MERGE_EXCLUDE),)
 
-.PHONY: all download extract normalize filter merge qc sources stats mergei qci clean
+.PHONY: all download extract normalize filter merge qc sources stats venn plots mergei qci clean
 
 all: qc
 
@@ -60,6 +65,32 @@ sources:
 stats:
 	@test -d $(S3) || (echo "stage3 dir not found: $(S3). Run: make filter (or make all) first." >&2; exit 1)
 	$(PY) scripts/wordlist.py --dir $(S3) --sources-file $(SOURCES_FILE) stats $(INCLUDE_FLAG) $(EXCLUDE_FLAG)
+
+venn:
+	@test -d $(S3) || (echo "stage3 dir not found: $(S3). Run: make filter (or make all) first." >&2; exit 1)
+	@mkdir -p $(OUT)
+	$(PY) scripts/plot_sources_venn.py --dir $(S3) --sources-file $(SOURCES_FILE) --out $(OUT_OVERLAP) --mode $(PLOT_MODE) $(INCLUDE_FLAG) $(EXCLUDE_FLAG)
+
+plots:
+	@test -d $(S3) || (echo "stage3 dir not found: $(S3). Run: make filter (or make all) first." >&2; exit 1)
+	@mkdir -p $(OUT_PLOTS)
+	@types="$(PLOT_TYPES)"; \
+	IFS=',' read -ra arr <<< "$$types"; \
+	for t in "$${arr[@]}"; do \
+		mode="$$(echo "$$t" | xargs)"; \
+		case "$$mode" in \
+			venn|upset|overlap|auto|all) ;; \
+			*) echo "invalid PLOT_TYPES item: '$$mode'. valid: venn,upset,overlap,auto,all" >&2; exit 1 ;; \
+		esac; \
+		if [ "$$mode" = "all" ]; then \
+			echo "[plots] mode=all -> $(OUT_PLOTS)/source_overlap.{upset,overlap[,venn]}.png"; \
+			$(PY) scripts/plot_sources_venn.py --dir $(S3) --sources-file $(SOURCES_FILE) --out $(OUT_PLOTS)/source_overlap.png --mode all --overlap-metric $(PLOT_OVERLAP_METRIC) $(INCLUDE_FLAG) $(EXCLUDE_FLAG); \
+		else \
+			out_file="$(OUT_PLOTS)/source_overlap.$$mode.png"; \
+			echo "[plots] mode=$$mode -> $$out_file"; \
+			$(PY) scripts/plot_sources_venn.py --dir $(S3) --sources-file $(SOURCES_FILE) --out "$$out_file" --mode "$$mode" --overlap-metric $(PLOT_OVERLAP_METRIC) $(INCLUDE_FLAG) $(EXCLUDE_FLAG); \
+		fi; \
+	done
 
 # 交互式选择源：只要求 stage3 已经存在（不会强制重跑全流程）
 mergei:

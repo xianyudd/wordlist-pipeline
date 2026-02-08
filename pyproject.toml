@@ -15,6 +15,19 @@ dependencies = [
   "questionary>=2.0.1",
 ]
 
+[project.optional-dependencies]
+viz = [
+  "matplotlib>=3.8.0",
+  "matplotlib-venn>=0.11.10",
+  "pandas>=2.0.0",
+  "upsetplot>=0.9.0",
+]
+
+[tool.setuptools]
+# This is a scripts-first repo (no importable top-level package).
+# Disable automatic package discovery to avoid accidental package inclusion.
+py-modules = []
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"

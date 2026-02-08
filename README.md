@@ -33,6 +33,7 @@
 │   ├── normalize.py               # 规范化（去空白、去重、排序）
 │   ├── filter_3zi.py              # 严格保留 3 个汉字
 │   ├── wordlist.py                # 源管理/统计/合并 CLI
+│   ├── plot_sources_venn.py       # 源集合图（默认 UpSet，可切换/批量导出）
 │   ├── pick_sources.py            # 交互式选源
 │   ├── qc.py                      # 质检报告
 │   └── contains_check.py          # A 是否被 B 完整覆盖
@@ -43,6 +44,7 @@
 │   └── stage3_filtered/
 └── out/
     ├── 3zi_words.txt
+    ├── source_overlap.png
     └── report.json
 ```
 
@@ -58,7 +60,13 @@
 python -m venv .venv
 source .venv/bin/activate
 pip install -U pip
-pip install -e .
+pip install .
+```
+
+如需画集合图（Venn/UpSet/重合度热力图）：
+
+```bash
+pip install '.[viz]'
 ```
 
 或最小安装：
@@ -90,6 +98,8 @@ make all
 - `make qc`：生成 `out/report.json`
 - `make sources`：查看来源状态、数量与引用信息
 - `make stats`：查看集合统计（并集、交集、独占等）
+- `make venn`：基于已有 `data/stage3_filtered` 生成源重合图到 `out/source_overlap.png`（默认 `upset`）
+- `make plots`：固定输出图表到 `docs/plots/`，可通过 `PLOT_TYPES` 选择图表类型
 - `make mergei`：交互式选择来源并合并
 - `make qci`：交互式合并后立即做 QC
 - `make clean`：清理 `data/`、`out/`、`.tmp/`
@@ -115,7 +125,72 @@ make merge MERGE_EXCLUDE=zhwiki_titles_ns0_gz
 ```bash
 make sources
 make stats
+make venn
 ```
+
+`make venn` 会自动读取 `sources/sources.txt` 里的源定义；你只要增删源并跑到 `filter` 阶段，图就会自动更新。  
+也可复用筛选参数：
+
+```bash
+make venn MERGE_INCLUDE=THUOCL,jieba,OpenCC
+make venn MERGE_EXCLUDE=zhwiki_titles_ns0_gz
+make venn PLOT_MODE=upset
+make venn PLOT_MODE=all
+```
+
+批量产图到 `docs/plots/`（固定目录）：
+
+```bash
+make plots
+make plots PLOT_TYPES=upset,overlap
+make plots PLOT_TYPES=overlap PLOT_OVERLAP_METRIC=containment
+```
+
+`PLOT_TYPES` 仅支持已实现类型：`venn,upset,overlap,auto,all`。  
+对应输出文件名示例：
+- `docs/plots/source_overlap.upset.png`
+- `docs/plots/source_overlap.overlap.png`
+- `docs/plots/source_overlap.venn.png`（仅当源数 <= 3 且模式包含 venn/all）
+
+并列展示（根目录 README）：
+
+<table>
+  <tr>
+    <td align="center"><b>UpSet 集合图</b></td>
+    <td align="center"><b>重合度热力图</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/plots/source_overlap.upset.png" alt="UpSet 集合图" width="100%" /></td>
+    <td><img src="docs/plots/source_overlap.overlap.png" alt="重合度热力图" width="100%" /></td>
+  </tr>
+</table>
+
+重合度热力图默认使用 Jaccard 指标；如需其他重合指标可直接调用脚本：
+
+```bash
+python scripts/plot_sources_venn.py --mode overlap --overlap-metric overlap
+python scripts/plot_sources_venn.py --mode overlap --overlap-metric containment
+```
+
+一次导出多张图（便于展示页并排使用）：
+
+```bash
+python scripts/plot_sources_venn.py --mode all --out out/source_overlap.png
+```
+
+会生成：
+- `out/source_overlap.upset.png`
+- `out/source_overlap.overlap.png`
+- （当来源数 `<=3` 时额外生成）`out/source_overlap.venn.png`
+
+若使用 UpSet，默认只展示前 20 个交集（避免过密）；如需全部展示可直接调用脚本：
+
+```bash
+python scripts/plot_sources_venn.py --mode upset --max-intersections 0
+```
+
+UpSet 图默认使用多色方案（来源色 + 交集阶数色），并自动附带图例与规范化标题。  
+重合度热力图用于表达“数据源之间重合度（比例）”，更贴合源对源比较。
 
 ### 3) 交互式选源
 
@@ -176,6 +251,9 @@ type  name  ref_or_url
 - `wordlist.py`
   - 提供 `sources / stats / build / head` 等子命令；
   - `build` 阶段做并集去重，输出总词表。
+- `plot_sources_venn.py`
+  - 自动读取 `sources/sources.txt` 的源定义和 `stage3` 文件；
+  - 支持 `venn / upset / overlap / all` 多模式，默认 `upset`。
 - `qc.py`
   - 输出总词数、首字 Top20、尾字 Top20。
 
