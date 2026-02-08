@@ -1,0 +1,8 @@
+# type  name      ref_or_url
+git     THUOCL    https://github.com/thunlp/THUOCL.git
+git     jieba     https://github.com/fxsjy/jieba.git
+git     OpenCC    https://github.com/BYVoid/OpenCC.git
+url     zhwiki_titles_ns0_gz  https://dumps.wikimedia.org/zhwiki/latest/zhwiki-latest-all-titles-in-ns0.gz
+
+# Generated source: crawl hanyuguoxue list pages (top 50 pages ~ 5000 entries)
+gen     hanyuguoxue_changdu3_top50  https://www.hanyuguoxue.com/cidian/changdu-3-p{page}
