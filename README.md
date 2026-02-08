@@ -5,90 +5,76 @@
 
 ## 项目特点
 
-- 多数据源统一处理（THUOCL / jieba / OpenCC / zhwiki / 汉语国学抓取）。
-- 全流程可复现（`make all` 一条命令）。
-- 支持按来源筛选合并（`--include / --exclude`）。
-- 支持交互式选源（`make mergei`）。
-- 产出基础质检报告（词数、首字/尾字 Top20）。
-
-## 目录结构
-
-```text
-.
-├── Makefile
-├── pyproject.toml
-├── docs/
-│   ├── README.md                  # 数据源文档索引
-│   └── sources/
-│       ├── THUOCL.md
-│       ├── jieba.md
-│       ├── OpenCC.md
-│       ├── zhwiki_titles_ns0_gz.md
-│       └── hanyuguoxue_changdu3_top50.md
-├── sources/
-│   └── sources.txt                # 数据源定义（type name ref/url）
-├── scripts/
-│   ├── download.sh                # 下载/抓取原始数据
-│   ├── extract.py                 # 各源抽取到统一格式
-│   ├── normalize.py               # 规范化（去空白、去重、排序）
-│   ├── filter_3zi.py              # 严格保留 3 个汉字
-│   ├── wordlist.py                # 源管理/统计/合并 CLI
-│   ├── plot_sources_venn.py       # 源集合图（默认 UpSet，可切换/批量导出）
-│   ├── pick_sources.py            # 交互式选源
-│   ├── qc.py                      # 质检报告
-│   └── contains_check.py          # A 是否被 B 完整覆盖
-├── data/
-│   ├── raw/
-│   ├── stage1_extracted/
-│   ├── stage2_normalized/
-│   └── stage3_filtered/
-└── out/
-    ├── 3zi_words.txt
-    ├── source_overlap.png
-    └── report.json
-```
-
-## 环境要求
-
-- Python >= 3.10
-- Bash（执行 `scripts/download.sh`）
-- 网络访问（拉取 GitHub/Wikimedia/汉语国学网页）
-
-## 安装依赖
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -U pip
-pip install .
-```
-
-如需画集合图（Venn/UpSet/重合度热力图）：
-
-```bash
-pip install '.[viz]'
-```
-
-或最小安装：
-
-```bash
-pip install typer rich questionary
-```
+- 多数据源统一处理（THUOCL / jieba / OpenCC / zhwiki / 汉语国学抓取）
+- 全流程可复现（`make all`）
+- 支持按来源筛选合并（`MERGE_INCLUDE / MERGE_EXCLUDE`）
+- 支持交互式选源（`make mergei`）
+- 支持多图表展示（UpSet / 热力图 / Venn）
 
 ## 快速开始
 
-执行完整流水线：
-
 ```bash
-make all
+uv sync --extra viz
+uv run make all
+uv run make plots
 ```
 
 默认产物：
 
 - `out/3zi_words.txt`：最终三字词表
 - `out/report.json`：质检报告
+- `docs/plots/source_overlap.upset.png`：UpSet 图
+- `docs/plots/source_overlap.overlap.png`：重合度热力图
 
-## Make 命令说明
+## 图表展示
+
+<table>
+  <tr>
+    <td align="center"><b>UpSet 集合图</b></td>
+    <td align="center"><b>重合度热力图</b></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/plots/source_overlap.upset.png" alt="UpSet 集合图" width="100%" /></td>
+    <td width="50%"><img src="docs/plots/source_overlap.overlap.png" alt="重合度热力图" width="100%" /></td>
+  </tr>
+</table>
+
+说明：
+
+- UpSet：看交集数量结构（哪些来源组合贡献最大）
+- 热力图：看来源两两重合比例（默认 Jaccard）
+
+## 文档索引
+
+- 总览文档：[`docs/README.md`](docs/README.md)
+- 数据源文档：清华词库（THUOCL）[`docs/sources/THUOCL.md`](docs/sources/THUOCL.md)
+- 数据源文档：jieba词典（jieba）[`docs/sources/jieba.md`](docs/sources/jieba.md)
+- 数据源文档：OpenCC词库（OpenCC）[`docs/sources/OpenCC.md`](docs/sources/OpenCC.md)
+- 数据源文档：维基百科标题（zhwiki_titles_ns0_gz）[`docs/sources/zhwiki_titles_ns0_gz.md`](docs/sources/zhwiki_titles_ns0_gz.md)
+- 数据源文档：汉语国学(三字)（hanyuguoxue_changdu3_top50）[`docs/sources/hanyuguoxue_changdu3_top50.md`](docs/sources/hanyuguoxue_changdu3_top50.md)
+
+## 安装说明
+
+环境要求：
+
+- Python >= 3.10
+- uv（建议最新版）
+- Bash（执行 `scripts/download.sh`）
+- 网络访问（拉取 GitHub/Wikimedia/汉语国学网页）
+
+基础依赖：
+
+```bash
+uv sync
+```
+
+可视化依赖：
+
+```bash
+uv sync --extra viz
+```
+
+## Make 命令
 
 - `make download`：下载/抓取所有原始源到 `data/raw`
 - `make extract`：抽取到 `data/stage1_extracted`
@@ -98,47 +84,29 @@ make all
 - `make qc`：生成 `out/report.json`
 - `make sources`：查看来源状态、数量与引用信息
 - `make stats`：查看集合统计（并集、交集、独占等）
-- `make venn`：基于已有 `data/stage3_filtered` 生成源重合图到 `out/source_overlap.png`（默认 `upset`）
-- `make plots`：固定输出图表到 `docs/plots/`，可通过 `PLOT_TYPES` 选择图表类型
+- `make venn`：输出单张图到 `out/source_overlap.png`（默认 `upset`）
+- `make plots`：批量输出图表到 `docs/plots/`
 - `make mergei`：交互式选择来源并合并
 - `make qci`：交互式合并后立即做 QC
 - `make clean`：清理 `data/`、`out/`、`.tmp/`
 
-## 常用用法
+## 常用命令
 
-### 1) 按来源筛选合并
-
-只使用指定来源：
+按来源筛选合并：
 
 ```bash
 make merge MERGE_INCLUDE=THUOCL,jieba,OpenCC
-```
-
-排除 wiki 大源：
-
-```bash
 make merge MERGE_EXCLUDE=zhwiki_titles_ns0_gz
 ```
 
-### 2) 统计与可视化检查
+查看统计和来源状态：
 
 ```bash
 make sources
 make stats
-make venn
 ```
 
-`make venn` 会自动读取 `sources/sources.txt` 里的源定义；你只要增删源并跑到 `filter` 阶段，图就会自动更新。  
-也可复用筛选参数：
-
-```bash
-make venn MERGE_INCLUDE=THUOCL,jieba,OpenCC
-make venn MERGE_EXCLUDE=zhwiki_titles_ns0_gz
-make venn PLOT_MODE=upset
-make venn PLOT_MODE=all
-```
-
-批量产图到 `docs/plots/`（固定目录）：
+生成展示图（推荐）：
 
 ```bash
 make plots
@@ -146,69 +114,19 @@ make plots PLOT_TYPES=upset,overlap
 make plots PLOT_TYPES=overlap PLOT_OVERLAP_METRIC=containment
 ```
 
-`PLOT_TYPES` 仅支持已实现类型：`venn,upset,overlap,auto,all`。  
-对应输出文件名示例：
+`PLOT_TYPES` 支持：`venn,upset,overlap,auto,all`。  
+对应输出示例：
+
 - `docs/plots/source_overlap.upset.png`
 - `docs/plots/source_overlap.overlap.png`
-- `docs/plots/source_overlap.venn.png`（仅当源数 <= 3 且模式包含 venn/all）
+- `docs/plots/source_overlap.venn.png`（仅来源数 <= 3 且模式包含 venn/all）
 
-并列展示（根目录 README）：
-
-<table>
-  <tr>
-    <td align="center"><b>UpSet 集合图</b></td>
-    <td align="center"><b>重合度热力图</b></td>
-  </tr>
-  <tr>
-    <td><img src="docs/plots/source_overlap.upset.png" alt="UpSet 集合图" width="100%" /></td>
-    <td><img src="docs/plots/source_overlap.overlap.png" alt="重合度热力图" width="100%" /></td>
-  </tr>
-</table>
-
-重合度热力图默认使用 Jaccard 指标；如需其他重合指标可直接调用脚本：
+单独调用绘图脚本：
 
 ```bash
-python scripts/plot_sources_venn.py --mode overlap --overlap-metric overlap
-python scripts/plot_sources_venn.py --mode overlap --overlap-metric containment
-```
-
-一次导出多张图（便于展示页并排使用）：
-
-```bash
-python scripts/plot_sources_venn.py --mode all --out out/source_overlap.png
-```
-
-会生成：
-- `out/source_overlap.upset.png`
-- `out/source_overlap.overlap.png`
-- （当来源数 `<=3` 时额外生成）`out/source_overlap.venn.png`
-
-若使用 UpSet，默认只展示前 20 个交集（避免过密）；如需全部展示可直接调用脚本：
-
-```bash
-python scripts/plot_sources_venn.py --mode upset --max-intersections 0
-```
-
-UpSet 图默认使用多色方案（来源色 + 交集阶数色），并自动附带图例与规范化标题。  
-重合度热力图用于表达“数据源之间重合度（比例）”，更贴合源对源比较。
-
-### 3) 交互式选源
-
-```bash
-make mergei
-make qci
-```
-
-### 4) 覆盖率检查（A 是否都在 B 中）
-
-例如检查汉语国学列表是否被最终词表覆盖：
-
-```bash
-python scripts/contains_check.py \
-  --a data/raw/hanyuguoxue_changdu3_top50.txt \
-  --b out/3zi_words.txt \
-  --missing-out out/missing_from_b.txt \
-  --report-out out/contains_report.json
+uv run python scripts/plot_sources_venn.py --mode upset --max-intersections 0
+uv run python scripts/plot_sources_venn.py --mode overlap --overlap-metric overlap
+uv run python scripts/plot_sources_venn.py --mode overlap --overlap-metric containment
 ```
 
 ## 数据源定义
@@ -227,44 +145,28 @@ type  name  ref_or_url
 - `url zhwiki_titles_ns0_gz`
 - `gen hanyuguoxue_changdu3_top50`
 
-新增来源后，按以下约定即可接入流程：
+新增来源后：
 
-1. 在 `sources/sources.txt` 新增一行。
-2. 原始文件放到 `data/raw/<name>.txt`（或在 `extract.py` 里添加专用解析逻辑）。
-3. 重新执行 `make extract normalize filter merge qc`。
+1. 在 `sources/sources.txt` 增加一行
+2. 把原始文件放到 `data/raw/<name>.txt`（或在 `extract.py` 增加解析逻辑）
+3. 运行 `make extract normalize filter merge qc`
 
-## 数据源文档
+数据源详情见 `docs/README.md`。
 
-每个数据源的详细介绍、格式和处理规则见：
+## 关键脚本
 
-- `docs/README.md`
-
-## 关键脚本行为说明
-
-- `extract.py`
-  - 对 `THUOCL/jieba/OpenCC/zhwiki_titles_ns0_gz` 使用专用提取逻辑；
-  - 其他源默认按纯文本一行一词处理（例如 `hanyuguoxue_changdu3_top50`）。
-- `normalize.py`
-  - 去除词内空白，按文件去重并排序。
-- `filter_3zi.py`
-  - 仅保留 `^[\u4e00-\u9fff]{3}$`，即“恰好 3 个基本汉字”。
-- `wordlist.py`
-  - 提供 `sources / stats / build / head` 等子命令；
-  - `build` 阶段做并集去重，输出总词表。
-- `plot_sources_venn.py`
-  - 自动读取 `sources/sources.txt` 的源定义和 `stage3` 文件；
-  - 支持 `venn / upset / overlap / all` 多模式，默认 `upset`。
-- `qc.py`
-  - 输出总词数、首字 Top20、尾字 Top20。
+- `scripts/extract.py`：多源抽取到统一格式
+- `scripts/normalize.py`：去空白、去重、排序
+- `scripts/filter_3zi.py`：仅保留 3 个汉字词条
+- `scripts/wordlist.py`：来源管理 / 统计 / 合并
+- `scripts/plot_sources_venn.py`：绘图（`venn / upset / overlap / all`）
+- `scripts/qc.py`：生成质检报告
 
 ## 常见问题
 
-- 下载慢或失败：
-  - 先重试 `make download`，脚本自带基础重试；网络代理环境可自行配置 `git/curl`。
-- `make sources` 提示 stage3 不存在：
-  - 先执行 `make filter` 或 `make all`。
-- 结果词数变化较大：
-  - 检查是否启用了 `MERGE_INCLUDE / MERGE_EXCLUDE`，以及上游源是否更新。
+- 下载慢或失败：重试 `make download`，必要时配置代理
+- `stage3` 不存在：先执行 `make filter` 或 `make all`
+- 词数变化较大：检查 `MERGE_INCLUDE / MERGE_EXCLUDE` 或上游源更新
 
 ## License
 
