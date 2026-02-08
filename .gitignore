@@ -9,6 +9,7 @@ venv/
 # pipeline artifacts
 data/
 out/
+.tmp/
 
 # OS / editor
 .DS_Store
